@@ -1,0 +1,10 @@
+numpy
+pandas
+einops
+huggingface_hub>=0.33,<1
+safetensors
+tqdm
+flask
+plotly
+yfinance
+# torch: installed by setup.sh from the PyTorch CPU index (much smaller than the default CUDA build)

@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kronos Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: control strip on top, chart as the main surface, a narrow side column for quote, model read and backtest. */
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --line:#dde3ea; --ink:#16202b; --muted:#5b6876;
+  --accent:#2a5bd7; --accent-soft:#e6edfc;
+  --up:#13834f; --up-soft:#e2f4ea; --down:#c4362b; --down-soft:#fbe6e4; --flat:#8a6d12; --flat-soft:#fbf3d9;
+  --band:rgba(42,91,215,.14); --path:rgba(42,91,215,.22);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e141b; --panel:#151d27; --line:#263241; --ink:#e3e9f0; --muted:#93a1b1;
+  --accent:#6f97ff; --accent-soft:#1c2a47; --up:#3fcf8e; --up-soft:#12291f; --down:#ff7a6e; --down-soft:#331a18;
+  --flat:#e3c26a; --flat-soft:#2d2714; --band:rgba(111,151,255,.18); --path:rgba(111,151,255,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141b; --panel:#151d27; --line:#263241; --ink:#e3e9f0; --muted:#93a1b1;
+  --accent:#6f97ff; --accent-soft:#1c2a47; --up:#3fcf8e; --up-soft:#12291f; --down:#ff7a6e; --down-soft:#331a18;
+  --flat:#e3c26a; --flat-soft:#2d2714; --band:rgba(111,151,255,.18); --path:rgba(111,151,255,.25); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px}
+.app{max-width:1400px;margin:0 auto;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px}
+header h1{font-size:18px;margin:0;letter-spacing:-.01em}
+header .sub{color:var(--muted);font-size:13px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--up)}
+.dot.off{background:var(--muted)} .dot.err{background:var(--down)}
+@media (prefers-reduced-motion:no-preference){.dot.on{animation:pulse 2s infinite}@keyframes pulse{50%{opacity:.35}}}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+input,select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 10px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#ticker{width:150px;font-family:var(--mono);text-transform:uppercase}
+button{cursor:pointer;font-weight:600}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:progress}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);padding-bottom:8px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px}
+@media (max-width:980px){.main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+#chart{height:560px}
+@media (max-width:600px){#chart{height:420px}}
+.side{display:flex;flex-direction:column;gap:12px}
+.h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px}
+.price{font-family:var(--mono);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.chg{font-family:var(--mono);font-weight:600;font-size:14px}
+.up{color:var(--up)} .down{color:var(--down)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;margin-top:8px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lean{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.04em;padding:3px 10px;border-radius:999px}
+.lean.UP{background:var(--up-soft);color:var(--up)} .lean.DOWN{background:var(--down-soft);color:var(--down)} .lean.FLAT{background:var(--flat-soft);color:var(--flat)}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin:8px 0 0}
+.status{font-size:13px;color:var(--muted);min-height:20px}
+.status.err{color:var(--down)}
+.empty{color:var(--muted);font-size:13px}
+footer{font-size:11px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Kronos Live Dashboard</h1>
+    <span class="sub">Live prices from Yahoo Finance · forecasts from the Kronos candlestick foundation model</span>
+    <span class="live"><span class="dot off" id="dot"></span><span id="liveTxt">idle</span></span>
+  </header>
+
+  <form class="controls" id="form">
+    <div class="field"><label for="ticker">Ticker</label><input id="ticker" value="HDFCBANK.NS" list="wl" autocomplete="off" spellcheck="false"><datalist id="wl"></datalist></div>
+    <div class="field"><label for="preset">Watchlist</label><select id="preset"><option value="">Pick a stock…</option></select></div>
+    <div class="field"><label for="interval">Bar size</label>
+      <select id="interval"><option value="5m">5 min</option><option value="15m">15 min</option><option value="1h" selected>1 hour</option><option value="1d">1 day</option></select></div>
+    <div class="field"><label for="horizon">Forecast bars</label><input id="horizon" type="number" min="4" max="120" value="24" style="width:90px"></div>
+    <div class="field"><label for="paths">Paths</label><input id="paths" type="number" min="1" max="10" value="5" style="width:70px"></div>
+    <div class="field"><label for="model">Model</label>
+      <select id="model"><option value="kronos-mini">Kronos-mini (fast)</option><option value="kronos-small" selected>Kronos-small</option><option value="kronos-base">Kronos-base (slow)</option></select></div>
+    <button class="primary" id="go" type="submit">Forecast</button>
+    <button id="bt" type="button">Backtest</button>
+    <label class="toggle"><input type="checkbox" id="auto" checked> Re-forecast on each new bar</label>
+  </form>
+  <div class="status" id="status" role="status"></div>
+
+  <div class="main">
+    <div class="panel"><div id="chart"></div></div>
+    <div class="side">
+      <div class="panel" id="quote"><p class="h">Live quote</p><p class="empty">Loading…</p></div>
+      <div class="panel" id="read"><p class="h">Model read</p><p class="empty">Press Forecast to run Kronos on the latest bars.</p></div>
+      <div class="panel" id="bres"><p class="h">Backtest</p><p class="empty">Backtest hides the most recent bars, forecasts them, and scores the forecast against what really happened.</p></div>
+    </div>
+  </div>
+
+  <footer>Kronos forecasts are statistical patterns learned from past candlesticks. They are often wrong, ignore news and fundamentals, and are not investment advice. Session times are learned from recent bars; exchange holidays are not known. Yahoo data can be delayed by up to 15 minutes for some exchanges.</footer>
+</div>
+
+<script src="/static/plotly.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let state = { hist: null, fc: null, bt: null, lastBar: null, busy: false };
+
+const fmt = (v, d=2) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d});
+const params = () => new URLSearchParams({ ticker: $('ticker').value.trim().toUpperCase(), interval: $('interval').value,
+  horizon: $('horizon').value, paths: $('paths').value, model: $('model').value });
+async function api(path, p) {
+  const r = await fetch(`/api/${path}?${p}`); const j = await r.json();
+  if (!r.ok || j.error) throw new Error(j.error || r.statusText); return j;
+}
+function setStatus(msg, isErr) { $('status').textContent = msg || ''; $('status').className = 'status' + (isErr ? ' err' : ''); }
+function live(stateName, txt) { $('dot').className = 'dot ' + stateName; $('liveTxt').textContent = txt; }
+
+// ---------------- chart
+const lab = t => $('interval').value === '1d' ? t.slice(0, 10) : t.slice(5, 16);
+const labs = a => a.map(lab);
+function draw() {
+  const raw = state.hist; if (!raw) return;
+  const h = { ...raw, timestamps: labs(raw.timestamps) };
+  const ink = css('--ink'), muted = css('--muted'), line = css('--line');
+  const traces = [{
+    type: 'candlestick', name: 'Price', x: h.timestamps, open: h.open, high: h.high, low: h.low, close: h.close,
+    increasing: { line: { color: css('--up') } }, decreasing: { line: { color: css('--down') } }, xaxis: 'x', yaxis: 'y',
+  }, {
+    type: 'bar', name: 'Volume', x: h.timestamps, y: h.volume, marker: { color: line }, xaxis: 'x', yaxis: 'y2', hoverinfo: 'skip',
+  }];
+  const addFc = (fc, label, color) => {
+    const x = labs(fc.timestamps), anchorX = [h.timestamps.at(-1)], anchorY = [h.close.at(-1)];
+    traces.push({ type: 'scatter', mode: 'lines', x: x, y: fc.p90, line: { width: 0 }, hoverinfo: 'skip', showlegend: false });
+    traces.push({ type: 'scatter', mode: 'lines', x: x, y: fc.p10, fill: 'tonexty', fillcolor: css('--band'), line: { width: 0 }, name: '10–90% band', hoverinfo: 'skip' });
+    fc.paths.forEach((p, i) => traces.push({ type: 'scatter', mode: 'lines', x: x, y: p, line: { color: css('--path'), width: 1 }, hoverinfo: 'skip', showlegend: i === 0, name: 'Sampled paths' }));
+    traces.push({ type: 'scatter', mode: 'lines', x: anchorX.concat(x), y: anchorY.concat(fc.mean.close), line: { color, width: 2.5 }, name: label });
+  };
+  if (state.bt) {
+    const b = state.bt;
+    // For a backtest the chart shows history up to the cut, then forecast vs actual.
+    addFc(b.forecast, 'Kronos forecast (hidden bars)', css('--accent'));
+    traces.push({ type: 'scatter', mode: 'lines+markers', x: labs(b.forecast.timestamps), y: b.actual, line: { color: ink, width: 1.5, dash: 'dot' }, marker: { size: 3 }, name: 'What actually happened' });
+  } else if (state.fc) {
+    addFc(state.fc.forecast, 'Kronos forecast (mean)', css('--accent'));
+  }
+  const layout = {
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { family: css('--sans'), color: muted, size: 12 },
+    margin: { l: 56, r: 12, t: 8, b: 32 }, showlegend: true, legend: { orientation: 'h', y: 1.06, x: 0, font: { color: ink } },
+    xaxis: { type: 'category', rangeslider: { visible: false }, showgrid: false, nticks: 8, tickangle: 0, tickfont: { color: muted }, linecolor: line },
+    yaxis: { domain: [0.22, 1], gridcolor: line, tickfont: { color: muted }, zeroline: false },
+    yaxis2: { domain: [0, 0.17], showgrid: false, tickfont: { color: muted }, zeroline: false },
+    hovermode: 'x unified', hoverlabel: { bgcolor: css('--panel'), font: { color: ink } },
+  };
+  Plotly.react('chart', traces, layout, { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] });
+}
+
+// ---------------- panels
+function renderQuote(q) {
+  const cls = q.change_pct > 0 ? 'up' : q.change_pct < 0 ? 'down' : '';
+  $('quote').innerHTML = `<p class="h">Live quote · ${q.ticker}</p>
+    <div class="price">${fmt(q.price)} <span class="chg ${cls}">${q.change_pct == null ? '' : (q.change_pct > 0 ? '+' : '') + fmt(q.change_pct) + '%'}</span></div>
+    <dl class="kv"><dt>Day range</dt><dd>${fmt(q.day_low)} – ${fmt(q.day_high)}</dd>
+    <dt>Prev close</dt><dd>${fmt(q.prev_close)}</dd><dt>Currency</dt><dd>${q.currency || '—'}</dd>
+    <dt>Last trade</dt><dd>${q.as_of.slice(0, 16)}</dd></dl>
+    <p class="note">Refreshes every 15 s. Fetched ${q.fetched_at}.</p>`;
+}
+function renderRead(f) {
+  const s = f.summary, unit = $('interval').selectedOptions[0].text;
+  $('read').innerHTML = `<p class="h">Model read · next ${f.forecast.timestamps.length} bars (${unit})</p>
+    <span class="lean ${s.lean}">${s.lean === 'UP' ? 'LEANS UP' : s.lean === 'DOWN' ? 'LEANS DOWN' : 'FLAT'}</span>
+    <dl class="kv"><dt>From last close</dt><dd>${fmt(f.last_close)}</dd>
+    <dt>Forecast end</dt><dd class="${s.move_pct > 0 ? 'up' : s.move_pct < 0 ? 'down' : ''}">${fmt(s.end_price)} (${s.move_pct > 0 ? '+' : ''}${fmt(s.move_pct)}%)</dd>
+    <dt>10–90% band at end</dt><dd>${fmt(s.band_end[0])} – ${fmt(s.band_end[1])}</dd>
+    <dt>Forecast high / low</dt><dd>${fmt(s.range_high)} / ${fmt(s.range_low)}</dd>
+    <dt>Paths ending higher</dt><dd>${s.paths_up} of ${s.paths_total}</dd></dl>
+    <p class="note">${s.strength[0].toUpperCase() + s.strength.slice(1)}. ${f.model}, ${f.seconds}s on CPU, last bar ${f.last_bar.slice(0, 16)}. Run Backtest to see how this model has done on this stock recently.</p>`;
+}
+function renderBt(b) {
+  $('bres').innerHTML = `<p class="h">Backtest · last ${b.actual.length} bars hidden</p>
+    <dl class="kv"><dt>Direction</dt><dd class="${b.direction_correct ? 'up' : 'down'}">${b.direction_correct ? 'Correct' : 'Wrong'}</dd>
+    <dt>Avg error (MAPE)</dt><dd>${fmt(b.mape_pct)}%</dd><dt>Actual inside band</dt><dd>${fmt(b.inside_band_pct, 0)}% of bars</dd>
+    <dt>Start → actual end</dt><dd>${fmt(b.start_close)} → ${fmt(b.actual.at(-1))}</dd></dl>
+    <p class="note">One backtest is one sample. Run it on several bar sizes before trusting the model on a stock. Press Forecast to go back to the live view.</p>`;
+}
+
+// ---------------- actions
+async function loadHistory() {
+  const p = params(); p.set('bars', 300);
+  state.hist = await api('history', p);
+  const newest = state.hist.timestamps.at(-1); const changed = state.lastBar && newest !== state.lastBar;
+  state.lastBar = newest; draw(); return changed;
+}
+async function loadQuote() {
+  try { renderQuote(await api('quote', params())); live('on', 'live'); }
+  catch (e) { live('err', 'quote failed'); $('quote').innerHTML = `<p class="h">Live quote</p><p class="status err">${e.message}</p>`; }
+}
+async function runForecast() {
+  if (state.busy) return; state.busy = true; $('go').disabled = $('bt').disabled = true;
+  setStatus('Running Kronos… the first run downloads the model and can take a minute.');
+  try {
+    state.bt = null; await loadHistory();
+    state.fc = await api('forecast', params()); draw(); renderRead(state.fc);
+    setStatus(`Forecast ready · ${state.fc.generated_at}`);
+  } catch (e) { setStatus(e.message, true); }
+  finally { state.busy = false; $('go').disabled = $('bt').disabled = false; }
+}
+async function runBacktest() {
+  if (state.busy) return; state.busy = true; $('go').disabled = $('bt').disabled = true;
+  setStatus('Backtesting: forecasting the most recent bars as if they had not happened yet…');
+  try {
+    const b = await api('backtest', params()); const n = b.actual.length;
+    const p = params(); p.set('bars', 300 + n); const full = await api('history', p);
+    // chart history stops at the cut so forecast and reality can be compared
+    state.hist = Object.fromEntries(Object.entries(full).map(([k, v]) => [k, v.slice(0, -n)]));
+    state.bt = b; draw(); renderBt(b); setStatus('Backtest done.');
+  } catch (e) { setStatus(e.message, true); }
+  finally { state.busy = false; $('go').disabled = $('bt').disabled = false; }
+}
+
+$('form').addEventListener('submit', e => { e.preventDefault(); state.lastBar = null; loadQuote(); runForecast(); });
+$('bt').addEventListener('click', runBacktest);
+$('preset').addEventListener('change', e => { if (e.target.value) { $('ticker').value = e.target.value; $('form').requestSubmit(); } });
+
+// Live loop: quote every 15 s; history every 60 s; re-forecast when a new bar closes.
+setInterval(loadQuote, 15000);
+setInterval(async () => {
+  if (state.busy || state.bt) return;
+  try { const changed = await loadHistory(); if (changed && $('auto').checked) runForecast(); } catch (e) {}
+}, 60000);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+(async () => {
+  try {
+    const wl = await (await fetch('/api/watchlist')).json();
+    const sel = $('preset'), dl = $('wl');
+    for (const [region, items] of Object.entries(wl)) {
+      const g = document.createElement('optgroup'); g.label = region.replace('_', ' & ').replace(/\b\w/g, c => c.toUpperCase());
+      for (const it of items) { g.append(new Option(`${it.name} (${it.ticker})`, it.ticker)); dl.append(new Option(it.name, it.ticker)); }
+      sel.append(g);
+    }
+  } catch (e) {}
+  loadQuote(); runForecast();
+})();
+</script>
+</body>
+</html>
