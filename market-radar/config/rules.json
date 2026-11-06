@@ -1,0 +1,23 @@
+{
+  "_note": "Thresholds the analyst must respect. Edit to make the system more or less aggressive.",
+  "buy": {
+    "min_impact_score": 3,
+    "min_confidence": 60,
+    "max_news_age_hours": 36,
+    "skip_if_already_moved_pct": 8,
+    "min_independent_sources": 2
+  },
+  "sell": {
+    "max_impact_score": -3,
+    "min_confidence": 55,
+    "stop_loss_pct": -8,
+    "take_profit_default_pct": 15
+  },
+  "cooldown_hours_same_ticker_same_action": 48,
+  "trusted_sources": [
+    "Company filings / exchange announcements (NSE, BSE, SEC EDGAR, RNS)",
+    "Reuters", "Bloomberg", "Financial Times", "Wall Street Journal", "CNBC", "Nikkei Asia",
+    "Economic Times", "Mint", "Business Standard", "Moneycontrol", "The Hindu BusinessLine"
+  ],
+  "ignore_sources": ["Anonymous social media posts", "Paid stock-tip channels", "Unverified rumours"]
+}

@@ -1,0 +1,15 @@
+{
+  "_note": "Add every stock you own. buy_price is per share in the stock's own currency. The analyst watches these for SELL signals every run.",
+  "holdings": [
+    {
+      "ticker": "EXAMPLE.NS",
+      "name": "Example Company (delete this row)",
+      "shares": 0,
+      "buy_price": 0,
+      "buy_date": "2026-01-01",
+      "target_price": null,
+      "stop_loss_price": null,
+      "notes": ""
+    }
+  ]
+}

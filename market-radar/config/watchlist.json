@@ -1,0 +1,62 @@
+{
+  "_note": "Tickers use Yahoo Finance format. Add or remove freely. The analyst also scans for news on companies NOT listed here.",
+  "regions": {
+    "india": {
+      "exchange": "NSE/BSE",
+      "currency": "INR",
+      "hours_utc": "03:45-10:00",
+      "tickers": {
+        "RELIANCE.NS": "Reliance Industries",
+        "TCS.NS": "Tata Consultancy Services",
+        "HDFCBANK.NS": "HDFC Bank",
+        "INFY.NS": "Infosys",
+        "ICICIBANK.NS": "ICICI Bank",
+        "BHARTIARTL.NS": "Bharti Airtel",
+        "LT.NS": "Larsen & Toubro",
+        "TATAMOTORS.NS": "Tata Motors",
+        "ADANIENT.NS": "Adani Enterprises",
+        "SUNPHARMA.NS": "Sun Pharmaceutical",
+        "BAJFINANCE.NS": "Bajaj Finance",
+        "HAL.NS": "Hindustan Aeronautics"
+      }
+    },
+    "us": {
+      "exchange": "NYSE/NASDAQ",
+      "currency": "USD",
+      "hours_utc": "13:30-20:00",
+      "tickers": {
+        "AAPL": "Apple",
+        "MSFT": "Microsoft",
+        "NVDA": "NVIDIA",
+        "AMZN": "Amazon",
+        "GOOGL": "Alphabet",
+        "META": "Meta Platforms",
+        "TSLA": "Tesla",
+        "AVGO": "Broadcom",
+        "JPM": "JPMorgan Chase",
+        "LLY": "Eli Lilly",
+        "AMD": "Advanced Micro Devices",
+        "PLTR": "Palantir"
+      }
+    },
+    "europe_asia": {
+      "exchange": "LSE/XETRA/Euronext/TSE/HKEX",
+      "currency": "mixed",
+      "hours_utc": "00:00-15:30",
+      "tickers": {
+        "ASML.AS": "ASML Holding",
+        "SAP.DE": "SAP",
+        "NOVO-B.CO": "Novo Nordisk",
+        "MC.PA": "LVMH",
+        "SHEL.L": "Shell",
+        "AZN.L": "AstraZeneca",
+        "7203.T": "Toyota Motor",
+        "6758.T": "Sony Group",
+        "9984.T": "SoftBank Group",
+        "0700.HK": "Tencent",
+        "9988.HK": "Alibaba",
+        "2330.TW": "TSMC"
+      }
+    }
+  }
+}
