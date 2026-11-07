@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trade Desk</title>
+<meta name="description" content="Daily news-based intraday trade plan with live prices and a scored track record.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: phone-first single column; a ticker strip, today's plan as stacked pick cards, then the track record. */
+:root{
+  --bg:#f3f5f4; --panel:#ffffff; --line:#dfe5e2; --ink:#14201b; --muted:#5d6b65; --soft:#eef2f0;
+  --accent:#0f6e5a; --accent-soft:#dcefe9;
+  --up:#13834f; --up-soft:#e1f3e9; --down:#c23a2f; --down-soft:#fbe5e2; --wait:#8a6a10; --wait-soft:#fbf2d6; --info:#2b5bc6; --info-soft:#e4ecfb;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1412; --panel:#141e1b; --line:#243430; --ink:#e2ebe7; --muted:#93a69e; --soft:#1a2723;
+  --accent:#4fc7a6; --accent-soft:#16302a; --up:#43cf8f; --up-soft:#122b20; --down:#ff7d70; --down-soft:#33191a;
+  --wait:#e5c46b; --wait-soft:#2d2714; --info:#86a8ff; --info-soft:#1b2643; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1412; --panel:#141e1b; --line:#243430; --ink:#e2ebe7; --muted:#93a69e; --soft:#1a2723;
+  --accent:#4fc7a6; --accent-soft:#16302a; --up:#43cf8f; --up-soft:#122b20; --down:#ff7d70; --down-soft:#33191a;
+  --wait:#e5c46b; --wait-soft:#2d2714; --info:#86a8ff; --info-soft:#1b2643; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0}
+.clock{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.mkt{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:999px;margin-left:6px}
+.mkt.open{background:var(--up-soft);color:var(--up)} .mkt.closed{background:var(--soft);color:var(--muted)}
+.strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.q{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;min-width:112px}
+.q .n{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.q .p{font-family:var(--mono);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+.q .c{font-family:var(--mono);font-size:12px}
+.up{color:var(--up)} .down{color:var(--down)}
+section{display:flex;flex-direction:column;gap:12px}
+h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:8px 0 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.ctx p{margin:0 0 6px}
+.meta{font-size:12px;color:var(--muted)}
+.meta a,.src a{color:var(--accent)}
+.stale{background:var(--wait-soft);color:var(--wait);border-radius:10px;padding:10px 14px;font-size:14px}
+.picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.pick{display:flex;flex-direction:column;gap:10px}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.tk{font-family:var(--mono);font-weight:600;font-size:16px}
+.co{font-size:13px;color:var(--muted)}
+.pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.s-WAITING,.s-WATCHING{background:var(--wait-soft);color:var(--wait)}
+.s-IN{background:var(--info-soft);color:var(--info)}
+.s-TARGET{background:var(--up-soft);color:var(--up)} .s-STOPPED{background:var(--down-soft);color:var(--down)}
+.s-TIME,.s-NOT,.s-NO,.s-ERROR{background:var(--soft);color:var(--muted)}
+.dir{font-size:11px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:5px}
+.dir.LONG{background:var(--up-soft);color:var(--up)} .dir.SHORT{background:var(--down-soft);color:var(--down)}
+.plan{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:12px}
+.plan div{background:var(--soft);border-radius:8px;padding:6px 8px;min-width:0}
+.plan b{display:block;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.live{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.live .big{font-size:20px;font-weight:600}
+.why{font-size:14px;margin:0}
+.why b{display:block;margin-bottom:2px}
+svg.spark{width:100%;height:84px;display:block}
+.src{font-size:12px;display:flex;flex-wrap:wrap;gap:4px 10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .v{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile .l{font-size:12px;color:var(--muted)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+td.n{font-family:var(--mono);text-align:right} th.n{text-align:right}
+tr:last-child td{border-bottom:none}
+.empty{color:var(--muted);font-size:14px;margin:0}
+.how{font-size:13px;color:var(--muted)}
+.how ol{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+footer{font-size:12px;color:var(--muted);line-height:1.6}
+@media (max-width:420px){.plan{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:p 2s infinite}@keyframes p{50%{opacity:.4}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Trade Desk</h1>
+    <span class="clock" id="clock">—</span>
+  </header>
+  <div class="strip" id="strip" aria-label="Market indices"></div>
+
+  <section>
+    <h2 id="planTitle">Today's plan</h2>
+    <div id="planHead"><div class="panel"><p class="empty">Loading the latest plan…</p></div></div>
+    <div class="picks" id="picks"></div>
+    <div id="avoid"></div>
+  </section>
+
+  <section>
+    <h2>Track record · every past plan, scored on real 5-minute prices</h2>
+    <div class="tiles" id="tiles"></div>
+    <div id="hist"></div>
+  </section>
+
+  <section class="panel how">
+    <strong style="color:var(--ink)">How this works</strong>
+    <ol>
+      <li>Each trading evening and again before the open, Market Radar searches real business news (company announcements, results, orders, approvals, policy, global cues) and writes a plan for the next session: at most 6 picks, each with an entry window, entry price zone, target, stop, and a time to exit if neither is hit.</li>
+      <li>This page checks every pick against live NSE prices every 30 seconds: waiting, watching for entry, in trade (with live profit/loss), target hit, stopped out, or time exit.</li>
+      <li>After the close, each pick is scored with strict rules: no fill unless price entered the zone inside the window, and if the stop and target are touched in the same 5 minutes, it counts as a loss.</li>
+    </ol>
+  </section>
+
+  <footer>Automated research from public news, not investment advice and not SEBI-registered research. News-based intraday calls fail often; judge this system by its track record above, start with small amounts, and always use your own stop-loss. Prices from Yahoo Finance may be delayed. Brokerage, taxes and slippage are not included in returns.</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v, d = 2) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d });
+const sign = v => v == null ? '' : (v > 0 ? '+' : '');
+const cls = v => v > 0 ? 'up' : v < 0 ? 'down' : '';
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NAMES = { '^NSEI': 'Nifty 50', '^BSESN': 'Sensex', '^NSEBANK': 'Bank Nifty', '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', 'INR=X': 'USD/INR', 'BZ=F': 'Brent' };
+const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return 'source'; } };
+
+function ist() {
+  const d = new Date(Date.now() + 330 * 60000);
+  const t = d.toISOString().slice(11, 16), day = d.getUTCDay();
+  const open = day >= 1 && day <= 5 && t >= '09:15' && t < '15:30';
+  return { date: d.toISOString().slice(0, 10), time: t, open };
+}
+function tick() {
+  const n = ist();
+  $('clock').innerHTML = `IST ${n.time} <span class="mkt ${n.open ? 'open' : 'closed'}">NSE ${n.open ? 'OPEN' : 'CLOSED'}</span>`;
+}
+
+async function getJSON(u) { const r = await fetch(u, { cache: 'no-store' }); const j = await r.json(); if (!r.ok || j.error) throw new Error(j.error || r.statusText); return j; }
+
+async function loadStrip() {
+  try {
+    const { quotes } = await getJSON('/api/quotes');
+    $('strip').innerHTML = quotes.filter(q => !q.error).map(q => `<div class="q"><span class="n">${esc(NAMES[q.ticker] || q.ticker)}</span>
+      <span class="p">${fmt(q.price)}</span><span class="c ${cls(q.change_pct)}">${sign(q.change_pct)}${fmt(q.change_pct)}%</span></div>`).join('');
+  } catch (e) {}
+}
+
+function spark(p) {
+  const pts = p.dayBars || [];
+  const levels = [p.target, p.stop, p.sim && p.sim.entry].filter(v => v != null);
+  if (pts.length < 2) return '';
+  const ys = pts.map(x => x[1]).concat(levels);
+  const lo = Math.min(...ys), hi = Math.max(...ys), pad = (hi - lo) * 0.08 || 1;
+  const W = 300, H = 84, y = v => H - 4 - ((v - lo + pad) / (hi - lo + 2 * pad)) * (H - 8), x = i => (i / (pts.length - 1)) * W;
+  const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(q[1]).toFixed(1)}`).join('');
+  const line = (v, color, label) => v == null ? '' : `<line x1="0" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="${color}" stroke-dasharray="4 3" stroke-width="1"/><text x="${W - 2}" y="${y(v) - 3}" text-anchor="end" font-size="10" fill="${color}" font-family="${css('--mono')}">${label} ${fmt(v)}</text>`;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Today's price with target and stop">
+    ${line(p.target, css('--up'), 'T')}${line(p.stop, css('--down'), 'S')}${line(p.sim && p.sim.entry, css('--info'), 'E')}
+    <path d="${path}" fill="none" stroke="${css('--ink')}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+function statusPill(s) {
+  const key = (s.status || '').split(' ')[0];
+  let txt = s.status;
+  if (s.status === 'IN TRADE') txt = `IN TRADE ${sign(s.ret)}${fmt(s.ret)}%`;
+  if (['TARGET HIT', 'STOPPED', 'TIME EXIT'].includes(s.status)) txt = `${s.status} ${sign(s.ret)}${fmt(s.ret)}%`;
+  return `<span class="pill s-${key} ${s.status === 'IN TRADE' ? 'pulse' : ''}">${esc(txt)}</span>`;
+}
+
+function renderPlan(plan) {
+  const now = ist();
+  if (plan.empty) {
+    $('planHead').innerHTML = `<div class="panel"><p class="empty">No plan published yet. The first plan appears the evening before the next trading session.</p></div>`;
+    return;
+  }
+  const isToday = plan.date === now.date, isFuture = plan.date > now.date;
+  $('planTitle').textContent = isToday ? `Today's plan · ${plan.date}` : isFuture ? `Plan for ${plan.date} (next session)` : `Last plan · ${plan.date}`;
+  const stale = !isToday && !isFuture ? `<div class="stale">This plan is for ${esc(plan.date)}. A new plan has not been published yet; results below are final for that day.</div>` : '';
+  const ctx = plan.market_context || {};
+  $('planHead').innerHTML = `${stale}<div class="panel ctx"><p>${esc(ctx.summary)}</p>
+    <div class="meta">Published ${esc((plan.generated_at || '').replace('T', ' ').slice(0, 16))} UTC · ${esc(plan.stage || '')} · ${(ctx.sources || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(' · ')}</div></div>`;
+  if (!plan.picks.length) { $('picks').innerHTML = `<div class="panel"><p class="empty">No trades today. Nothing in the news met the bar for a high-conviction intraday setup, and sitting out is a valid plan.</p></div>`; }
+  else $('picks').innerHTML = plan.picks.map(p => {
+    const s = p.sim || {}, q = p.quote || {};
+    const chg = q.prevClose ? (q.price / q.prevClose - 1) * 100 : null;
+    const zone = p.entry_zone ? `${fmt(p.entry_zone[0])}–${fmt(p.entry_zone[1])}` : 'at market';
+    return `<article class="panel pick">
+      <div class="ph"><div><div class="tk">${esc(p.ticker.replace('.NS', ''))} <span class="dir ${esc(p.direction)}">${p.direction === 'SHORT' ? 'SELL FIRST' : 'BUY'}</span></div><div class="co">${esc(p.company)} · ${p.confidence}% confidence</div></div>${statusPill(s)}</div>
+      <div class="live"><span class="big">${fmt(q.price)}</span><span class="${cls(chg)}">${chg == null ? '' : sign(chg) + fmt(chg) + '% today'}</span></div>
+      <div class="plan">
+        <div><span>Entry ${esc(p.entry_window[0])}–${esc(p.entry_window[1])}</span><b>${zone}</b></div>
+        <div><span>Target</span><b class="up">${fmt(p.target)}</b></div>
+        <div><span>Stop</span><b class="down">${fmt(p.stop)}</b></div>
+        <div><span>Exit by</span><b>${esc(p.exit_by)}</b></div>
+      </div>
+      ${spark(p)}
+      ${s.entry ? `<div class="meta">Filled ${fmt(s.entry)} at ${esc(s.entryTime)}${s.exit ? ` · exited ${fmt(s.exit)} at ${esc(s.exitTime)}` : ''}</div>` : s.note ? `<div class="meta">${esc(s.note)}</div>` : ''}
+      <p class="why"><b>${esc(p.catalyst)}</b>${esc(p.reasoning)}</p>
+      ${p.risk ? `<div class="meta">Risk: ${esc(p.risk)}</div>` : ''}
+      <div class="src">${(p.sources || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join('')}</div>
+    </article>`;
+  }).join('');
+  $('avoid').innerHTML = (plan.avoid || []).length ? `<div class="panel"><strong>Avoid today</strong><div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${plan.avoid.map(a =>
+    `<div><span class="tk" style="font-size:14px">${esc(a.ticker)}</span> <span class="meta">${esc(a.reason)} ${(a.sources || []).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(' ')}</span></div>`).join('')}</div></div>` : '';
+}
+
+async function loadPlan() {
+  try { renderPlan(await getJSON('/api/today')); }
+  catch (e) { $('planHead').innerHTML = `<div class="panel"><p class="empty">Could not load the plan: ${esc(e.message)}</p></div>`; }
+}
+
+async function loadHistory() {
+  try {
+    const h = await getJSON('/api/history'), s = h.summary;
+    const tile = (v, l, c = '') => `<div class="tile"><div class="v ${c}">${v}</div><div class="l">${l}</div></div>`;
+    $('tiles').innerHTML = tile(s.trades, 'Trades taken') + tile(s.win_rate == null ? '—' : s.win_rate + '%', 'Win rate') +
+      tile(s.avg_return == null ? '—' : sign(s.avg_return) + fmt(s.avg_return) + '%', 'Avg return per trade', cls(s.avg_return)) +
+      tile(sign(s.total_return) + fmt(s.total_return) + '%', 'Sum of returns', cls(s.total_return)) + tile(s.not_triggered, 'Not triggered');
+    const rows = h.days.flatMap(d => d.picks.map(p => `<tr><td>${esc(d.date)}</td><td><b>${esc(p.ticker.replace('.NS', ''))}</b></td><td>${p.direction === 'SHORT' ? 'Sell first' : 'Buy'}</td>
+      <td>${statusPill(p.sim)}</td><td class="n">${fmt(p.sim.entry)}</td><td class="n">${fmt(p.sim.exit ?? p.sim.last)}</td><td class="n ${cls(p.sim.ret)}">${p.sim.ret == null ? '—' : sign(p.sim.ret) + fmt(p.sim.ret) + '%'}</td><td>${p.confidence}%</td></tr>`)).join('');
+    $('hist').innerHTML = rows ? `<div class="tw"><table><thead><tr><th>Date</th><th>Stock</th><th>Side</th><th>Result</th><th class="n">Entry</th><th class="n">Exit</th><th class="n">Return</th><th>Conf.</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : `<div class="panel"><p class="empty">The track record starts with the first published plan. Give it at least 20 trading days before trusting the numbers.</p></div>`;
+  } catch (e) { $('hist').innerHTML = `<div class="panel"><p class="empty">Could not load history: ${esc(e.message)}</p></div>`; }
+}
+
+tick(); setInterval(tick, 15000);
+loadStrip(); loadPlan(); loadHistory();
+setInterval(loadStrip, 20000); setInterval(loadPlan, 30000); setInterval(loadHistory, 600000);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', loadPlan);
+</script>
+</body>
+</html>
