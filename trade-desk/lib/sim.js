@@ -25,8 +25,13 @@ async function bars(ticker, range = '1d', interval = '5m') {
     const local = new Date(t * 1000 + off);
     out.push({ date: local.toISOString().slice(0, 10), time: hhmm(local), o: q.open[i], h: q.high[i], l: q.low[i], c: q.close[i], v: q.volume[i] });
   });
+  // Previous session's close = last bar of the day before the latest day (chartPreviousClose is
+  // the close before the whole range, which is wrong for multi-day ranges).
+  const lastDate = out.length ? out[out.length - 1].date : null;
+  const prevBar = [...out].reverse().find(b => b.date < lastDate);
+  const prevClose = range === '1d' ? (m.chartPreviousClose ?? m.previousClose) : (prevBar ? prevBar.c : m.chartPreviousClose);
   return {
-    meta: { price: m.regularMarketPrice, prevClose: m.chartPreviousClose ?? m.previousClose, currency: m.currency,
+    meta: { price: m.regularMarketPrice, prevClose, currency: m.currency,
             exchange: m.exchangeName, marketTime: m.regularMarketTime, dayHigh: m.regularMarketDayHigh, dayLow: m.regularMarketDayLow,
             localNow: hhmm(new Date(Date.now() + off)), localDate: new Date(Date.now() + off).toISOString().slice(0, 10) },
     bars: out,

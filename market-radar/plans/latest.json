@@ -16,7 +16,7 @@
       "company": "Hindalco Industries",
       "direction": "LONG",
       "catalyst": "Q2 FY27 profit +59% YoY to ₹7,533 cr, revenue +39%, beating estimates (results Fri 6 Nov)",
-      "reasoning": "A clear beat on higher aluminium prices, after a record Q1. The stock rose 5.2% into Friday's close as the results landed, so follow-through buying on Monday is likely, but part of the move is already priced in. Only buy near Friday's close: do not chase a gap above ₹965.",
+      "reasoning": "A clear beat on higher aluminium prices, after a record Q1. On Friday the stock opened about 5% lower (₹891, likely on its US arm Novelis's results a day earlier), then rallied 7.5% off the low after Hindalco's own numbers to close at ₹958.40, up 2.2%. That reversal on heavy volume favours follow-through on Monday. Only buy near Friday's close: do not chase a gap above ₹965.",
       "confidence": 55,
       "ref_price": 958.4,
       "entry_window": [
@@ -30,7 +30,7 @@
       "target": 985.0,
       "stop": 940.0,
       "exit_by": "15:10",
-      "risk": "Already up 5.2% on Friday; profit-taking after a 7-day market rally could erase the gain. Novelis (US arm) commentary on tariffs is a known swing factor.",
+      "risk": "The rally came late on Friday; profit-taking after a 7-day market run could erase it. Novelis (US arm) tariff commentary is a known swing factor.",
       "sources": [
         "https://www.zeebiz.com/companies/news-hindalco-q2-results-profit-rises-59-to-rs-7533-crore-revenue-jumps-39-beats-estimates-405227",
         "https://lapaasvoice.com/hindalco-q2-results-net-profit-rises-59-to-%E2%82%B97532-crore-beats-estimates-as-aluminium-prices-strengthen"
@@ -47,5 +47,5 @@
     }
   ],
   "notes": "First plan. Weekend draft from Friday's news; the Monday 08:40 IST run replaces it once automation is connected. One pick only: nothing else in the news met the bar.",
-  "generated_at": "2026-11-07T07:24:43+00:00"
+  "generated_at": "2026-11-07T07:40:00+00:00"
 }

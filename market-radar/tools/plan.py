@@ -25,7 +25,7 @@ HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 def yahoo(ticker: str) -> dict:
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?range=5d&interval=1d"
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?range=1d&interval=5m"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=15) as r:
         res = json.load(r)["chart"]["result"][0]
