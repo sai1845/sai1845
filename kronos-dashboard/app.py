@@ -128,6 +128,92 @@ def backtest():
         return err(e, 500)
 
 
+# ---------------------------------------------------------------- Market Radar
+# The hourly Market Radar task saves its signals and the holdings file to GitHub.
+# Read them from GitHub first (so a PC copy stays current without git pull),
+# and fall back to the local checkout.
+RADAR = HERE.parent / "market-radar"
+RAW = os.environ.get("RADAR_RAW_BASE",
+                     "https://raw.githubusercontent.com/sai1845/sai1845/claude/instagram-post-review-l3korb/market-radar")
+RULES_DEFAULT = {"sell": {"stop_loss_pct": -8, "take_profit_default_pct": 15}}
+
+
+def _radar_file(rel: str) -> tuple[str, str]:
+    import urllib.request
+    try:
+        req = urllib.request.Request(f"{RAW}/{rel}?t={int(time.time() // 300)}", headers={"User-Agent": "kronos-dashboard"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            return r.read().decode("utf-8"), "GitHub"
+    except Exception:
+        p = RADAR / rel
+        return (p.read_text(encoding="utf-8") if p.exists() else ""), "local copy"
+
+
+def _radar_data() -> dict:
+    def load():
+        log_txt, src = _radar_file("signals/log.jsonl")
+        signals = []
+        for line in log_txt.splitlines():
+            try:
+                signals.append(json.loads(line))
+            except Exception:
+                pass
+        hold_txt, _ = _radar_file("portfolio/holdings.json")
+        rules_txt, _ = _radar_file("config/rules.json")
+        try:
+            holdings = [h for h in json.loads(hold_txt).get("holdings", [])
+                        if h.get("shares", 0) > 0 and not str(h.get("ticker", "")).startswith("EXAMPLE")]
+        except Exception:
+            holdings = []
+        try:
+            rules = json.loads(rules_txt)
+        except Exception:
+            rules = RULES_DEFAULT
+        closed = {s.get("closes") for s in signals if s.get("action") == "CLOSE"}
+        for s in signals:
+            if s.get("action") == "BUY":
+                s["status"] = "closed" if s.get("id") in closed else "open"
+        return {"signals": list(reversed(signals))[:60], "holdings": holdings, "rules": rules.get("sell", {}),
+                "source": src, "loaded_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())}
+    return cached(("radar",), 120, load)
+
+
+@app.get("/api/radar")
+def radar():
+    try:
+        return jsonify(_radar_data())
+    except Exception as e:
+        return err(e, 500)
+
+
+@app.get("/api/portfolio")
+def portfolio():
+    """Live P&L and stop-loss / take-profit status for each holding."""
+    try:
+        r = _radar_data()
+        sell = r["rules"] or RULES_DEFAULT["sell"]
+        rows = []
+        for h in r["holdings"]:
+            t = h["ticker"].upper()
+            row = {"ticker": t, "name": h.get("name", t), "shares": h["shares"], "buy_price": h["buy_price"]}
+            try:
+                q = cached(("q", t), 15, lambda: fx.fetch_quote(t))
+                price = q["price"]
+                stop = h.get("stop_loss_price") or h["buy_price"] * (1 + sell.get("stop_loss_pct", -8) / 100)
+                target = h.get("target_price") or h["buy_price"] * (1 + sell.get("take_profit_default_pct", 15) / 100)
+                status = "STOP-LOSS HIT" if price <= stop else "TARGET HIT" if price >= target else "HOLD"
+                row.update(price=price, currency=q.get("currency"), day_pct=q.get("change_pct"),
+                           pnl=round((price - h["buy_price"]) * h["shares"], 2),
+                           pnl_pct=round((price / h["buy_price"] - 1) * 100, 2),
+                           stop=round(stop, 2), target=round(target, 2), status=status)
+            except Exception as e:
+                row["error"] = str(e)
+            rows.append(row)
+        return jsonify({"rows": rows, "source": r["source"]})
+    except Exception as e:
+        return err(e, 500)
+
+
 @app.get("/api/health")
 def health():
     return jsonify({"ok": True, "models_loaded": list(svc._loaded)})

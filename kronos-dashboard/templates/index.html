@@ -63,6 +63,25 @@ button:disabled{opacity:.55;cursor:progress}
 .status{font-size:13px;color:var(--muted);min-height:20px}
 .status.err{color:var(--down)}
 .empty{color:var(--muted);font-size:13px}
+.radar{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px}
+@media (max-width:980px){.radar{grid-template-columns:1fr}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+tr.pick{cursor:pointer} tr.pick:hover td{background:var(--accent-soft)}
+.pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:999px}
+.pill.BUY,.pill.HOLD-ok{background:var(--up-soft);color:var(--up)} .pill.SELL,.pill.STOP{background:var(--down-soft);color:var(--down)}
+.pill.WATCH,.pill.HOLD{background:var(--flat-soft);color:var(--flat)} .pill.TARGET{background:var(--accent-soft);color:var(--accent)} .pill.CLOSE{background:var(--bg);color:var(--muted)}
+.sig{border-bottom:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:4px}
+.sig:last-child{border-bottom:none}
+.sig .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sig .tk{font-family:var(--mono);font-weight:600;cursor:pointer;color:var(--accent);background:none;border:none;padding:0;font-size:13px}
+.sig .why{font-size:13px;line-height:1.5}
+.sig .meta{font-size:12px;color:var(--muted)}
+.sig a{color:var(--accent)}
+#feed{max-height:520px;overflow-y:auto}
 footer{font-size:11px;color:var(--muted);line-height:1.6}
 </style>
 </head>
@@ -96,6 +115,11 @@ footer{font-size:11px;color:var(--muted);line-height:1.6}
       <div class="panel" id="read"><p class="h">Model read</p><p class="empty">Press Forecast to run Kronos on the latest bars.</p></div>
       <div class="panel" id="bres"><p class="h">Backtest</p><p class="empty">Backtest hides the most recent bars, forecasts them, and scores the forecast against what really happened.</p></div>
     </div>
+  </div>
+
+  <div class="radar">
+    <div class="panel"><p class="h">My stocks · live P&amp;L and sell checks</p><div id="port"><p class="empty">Loading your holdings…</p></div></div>
+    <div class="panel"><p class="h">Market Radar · news-based signals</p><div id="feed"><p class="empty">Loading signals…</p></div></div>
   </div>
 
   <footer>Kronos forecasts are statistical patterns learned from past candlesticks. They are often wrong, ignore news and fundamentals, and are not investment advice. Session times are learned from recent bars; exchange holidays are not known. Yahoo data can be delayed by up to 15 minutes for some exchanges.</footer>
@@ -243,6 +267,52 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
   } catch (e) {}
   loadQuote(); runForecast();
 })();
+
+// ---------------- Market Radar
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function pick(t) { $('ticker').value = t; $('form').requestSubmit(); scrollTo({ top: 0, behavior: 'smooth' }); }
+async function loadPortfolio() {
+  try {
+    const r = await (await fetch('/api/portfolio')).json();
+    if (r.error) throw new Error(r.error);
+    if (!r.rows.length) {
+      $('port').innerHTML = `<p class="empty">No holdings yet. Add the stocks you own to <b>market-radar/portfolio/holdings.json</b> on GitHub (or tell Claude in chat), and they will appear here with live profit/loss. Market Radar also checks them every hour for sell signals.</p>`;
+      return;
+    }
+    const pill = s => s === 'STOP-LOSS HIT' ? '<span class="pill STOP" title="Stop-loss hit">SELL</span>' : s === 'TARGET HIT' ? '<span class="pill TARGET" title="Target reached">TARGET</span>' : '<span class="pill HOLD-ok">HOLD</span>';
+    $('port').innerHTML = `<div class="tw"><table><thead><tr><th>Stock</th><th class="num">Price</th><th class="num">Today</th><th class="num">Buy</th><th class="num">P&amp;L</th><th class="num">Stop / Target</th><th>Status</th></tr></thead><tbody>${
+      r.rows.map(x => x.error ? `<tr><td>${esc(x.ticker)}</td><td colspan="6" class="status err">${esc(x.error)}</td></tr>` :
+        `<tr class="pick" data-t="${esc(x.ticker)}"><td><b>${esc(x.ticker)}</b><br><span class="note" style="margin:0">${esc(x.name)} · ${x.shares} sh</span></td>
+         <td class="num">${fmt(x.price)}</td><td class="num ${x.day_pct > 0 ? 'up' : x.day_pct < 0 ? 'down' : ''}">${x.day_pct == null ? '—' : (x.day_pct > 0 ? '+' : '') + fmt(x.day_pct) + '%'}</td>
+         <td class="num">${fmt(x.buy_price)}</td><td class="num ${x.pnl >= 0 ? 'up' : 'down'}">${x.pnl >= 0 ? '+' : ''}${fmt(x.pnl)}<br>${x.pnl_pct >= 0 ? '+' : ''}${fmt(x.pnl_pct)}%</td>
+         <td class="num">${fmt(x.stop)} / ${fmt(x.target)}</td><td>${pill(x.status)}</td></tr>`).join('')
+    }</tbody></table></div><p class="note">Prices refresh every 30 s. Tap a row to chart it and run Kronos. Holdings read from ${esc(r.source)}.</p>`;
+    $('port').querySelectorAll('tr.pick').forEach(tr => tr.addEventListener('click', () => pick(tr.dataset.t)));
+  } catch (e) { $('port').innerHTML = `<p class="status err">${esc(e.message)}</p>`; }
+}
+async function loadRadar() {
+  try {
+    const r = await (await fetch('/api/radar')).json();
+    if (r.error) throw new Error(r.error);
+    const sigs = r.signals.filter(s => s.action !== 'CLOSE' || true);
+    if (!sigs.length) {
+      $('feed').innerHTML = `<p class="empty">No signals yet. Market Radar searches business news every hour on market days (India, US, Europe &amp; Asia) and records a BUY only when a strong catalyst is confirmed by two trusted sources. Most hours find nothing, and that is expected.</p><p class="note">Checked ${esc(r.loaded_at)} from ${esc(r.source)}.</p>`;
+      return;
+    }
+    $('feed').innerHTML = sigs.map(s => s.action === 'CLOSE' ?
+      `<div class="sig"><div class="top"><span class="pill CLOSE">CLOSED</span><button class="tk" data-t="${esc(s.ticker)}">${esc(s.ticker)}</button><span class="meta">${esc(s.ts?.slice(0,16))} · return ${s.return_pct ?? '—'}% · ${esc(s.reason)}</span></div></div>` :
+      `<div class="sig"><div class="top"><span class="pill ${esc(s.action)}">${esc(s.action)}</span><button class="tk" data-t="${esc(s.ticker)}">${esc(s.ticker)}</button>
+        <span class="meta">${esc(s.company)} · impact ${s.impact_score > 0 ? '+' : ''}${s.impact_score} · ${s.confidence}% conf · ~${s.horizon_days} days${s.status ? ' · ' + s.status : ''}</span></div>
+        <div class="why"><b>${esc(s.catalyst)}</b><br>${esc(s.reasoning)}</div>
+        ${s.price_at_signal ? `<div class="meta">At signal ${fmt(s.price_at_signal)} ${esc(s.currency || '')}${s.target_price ? ' · target ' + fmt(s.target_price) : ''}${s.stop_price ? ' · stop ' + fmt(s.stop_price) : ''}</div>` : ''}
+        ${s.risks ? `<div class="meta">Risks: ${esc(s.risks)}</div>` : ''}
+        <div class="meta">${esc(s.ts?.slice(0,16))} UTC · ${(s.sources || []).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">source ${i + 1}</a>`).join(' · ')}</div></div>`).join('')
+      + `<p class="note">Checked ${esc(r.loaded_at)} from ${esc(r.source)}. Research, not financial advice.</p>`;
+    $('feed').querySelectorAll('.tk').forEach(b => b.addEventListener('click', () => pick(b.dataset.t)));
+  } catch (e) { $('feed').innerHTML = `<p class="status err">${esc(e.message)}</p>`; }
+}
+loadPortfolio(); loadRadar();
+setInterval(loadPortfolio, 30000); setInterval(loadRadar, 300000);
 </script>
 </body>
 </html>
