@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-09",
+  "market": "NSE",
+  "timezone": "Asia/Kolkata",
+  "stage": "weekend draft",
+  "market_context": {
+    "summary": "Nifty 50 closed Friday at 25,030 (+2.0%), its 7th straight gain and a nine-month high above 25,000, led by banks. After a run like this, Monday can see profit-taking, so only strong stock-specific news is worth trading. Q2 results season continues all week; avoid stocks reporting during market hours.",
+    "sources": [
+      "https://www.indiaipo.in/news/detail/sensex-nifty-rally-for-7th-straight-day-3-reasons-behind-d-streets-winning-streak",
+      "https://www.zeebiz.com/companies/news-hindalco-q2-results-profit-rises-59-to-rs-7533-crore-revenue-jumps-39-beats-estimates-405227"
+    ]
+  },
+  "picks": [
+    {
+      "ticker": "HINDALCO.NS",
+      "company": "Hindalco Industries",
+      "direction": "LONG",
+      "catalyst": "Q2 FY27 profit +59% YoY to ₹7,533 cr, revenue +39%, beating estimates (results Fri 6 Nov)",
+      "reasoning": "A clear beat on higher aluminium prices, after a record Q1. The stock rose 5.2% into Friday's close as the results landed, so follow-through buying on Monday is likely, but part of the move is already priced in. Only buy near Friday's close: do not chase a gap above ₹965.",
+      "confidence": 55,
+      "ref_price": 958.4,
+      "entry_window": [
+        "09:20",
+        "09:45"
+      ],
+      "entry_zone": [
+        950.0,
+        965.0
+      ],
+      "target": 985.0,
+      "stop": 940.0,
+      "exit_by": "15:10",
+      "risk": "Already up 5.2% on Friday; profit-taking after a 7-day market rally could erase the gain. Novelis (US arm) commentary on tariffs is a known swing factor.",
+      "sources": [
+        "https://www.zeebiz.com/companies/news-hindalco-q2-results-profit-rises-59-to-rs-7533-crore-revenue-jumps-39-beats-estimates-405227",
+        "https://lapaasvoice.com/hindalco-q2-results-net-profit-rises-59-to-%E2%82%B97532-crore-beats-estimates-as-aluminium-prices-strengthen"
+      ]
+    }
+  ],
+  "avoid": [
+    {
+      "ticker": "3MINDIA.NS",
+      "reason": "Q2 profit fell 17% and the stock dropped ~10% on Friday. Don't try to catch the fall.",
+      "sources": [
+        "https://socialnews.xyz/2026/11/06/3m-india-q2-profit-falls-17-2-pc-to-rs-158-crore-shares-tumble-10-pc"
+      ]
+    }
+  ],
+  "notes": "First plan. Weekend draft from Friday's news; the Monday 08:40 IST run replaces it once automation is connected. One pick only: nothing else in the news met the bar.",
+  "generated_at": "2026-11-07T07:24:43+00:00"
+}
