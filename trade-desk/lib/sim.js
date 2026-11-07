@@ -79,6 +79,7 @@ async function scorePlan(plan) {
       const d = await bars(p.ticker, '1mo', '5m');
       const day = d.bars.filter(b => b.date === plan.date);
       const live = d.meta.localDate === plan.date;
+      if (plan.date > d.meta.localDate) return { ...p, quote: d.meta, sim: { status: 'UPCOMING', note: `Plan for ${plan.date}. Entry opens at ${p.entry_window[0]}.` }, dayBars: [] };
       return { ...p, quote: d.meta, sim: simulate(p, day, { live, localNow: d.meta.localNow }), dayBars: day.map(b => [b.time, +b.c.toFixed(2)]) };
     } catch (e) { return { ...p, sim: { status: 'ERROR', note: String(e.message || e) } }; }
   }));

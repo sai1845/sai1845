@@ -3,7 +3,8 @@ const { raw, scorePlan, send } = require('../lib/sim');
 module.exports = async (req, res) => {
   try {
     const idx = await raw('plans/index.json');
-    const dates = ((idx && idx.dates) || []).slice(0, 25);
+    const todayIST = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+    const dates = ((idx && idx.dates) || []).filter(d => d <= todayIST).slice(0, 25);
     const days = [];
     for (const d of dates) {
       const p = await raw(`plans/${d}.json`);
